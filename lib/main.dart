@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: NewYearsCountdownScreen(
-        overrideStartDateTime: DateTime.parse('2020-12-31 20:59:49'),
+        overrideStartDateTime: DateTime.parse('2020-12-31 23:59:49'),
         doTick: true,
       ),
       debugShowCheckedModeBanner: false,
@@ -155,10 +155,17 @@ class NewYearsCountdownPage extends StatefulWidget {
 
 class _NewYearsCountdownPageState extends State<NewYearsCountdownPage>
     with TickerProviderStateMixin {
+  final DateTime _newYearDateTime = DateTime.parse('2021-01-01 00:00:00');
+
   final DateFormat _timeFormat = DateFormat('h:mm:ss a');
 
   @override
   Widget build(BuildContext context) {
+    // We ceil() the fraction so that when time hits something like 23:59:59.007
+    // we treat that as 10 seconds instead of 9 seconds.
+    final secondsUntilNewYear =
+        (_newYearDateTime.difference(widget.now).inMilliseconds / 1000).ceil();
+
     return Scaffold(
       body: Stack(
         children: [
@@ -166,6 +173,11 @@ class _NewYearsCountdownPageState extends State<NewYearsCountdownPage>
             mode: _environmentMode,
             time: _timeFormat.format(widget.now),
             year: '${widget.now.year}',
+          ),
+          CountdownText(
+            number: secondsUntilNewYear > 0 && secondsUntilNewYear <= 10
+                ? secondsUntilNewYear
+                : null,
           ),
         ],
       ),
@@ -182,6 +194,86 @@ class _NewYearsCountdownPageState extends State<NewYearsCountdownPage>
     } else {
       return EnvironmentMode.night;
     }
+  }
+}
+
+class CountdownText extends StatefulWidget {
+  const CountdownText({
+    Key key,
+    this.number,
+  }) : super(key: key);
+
+  final int number;
+
+  @override
+  _CountdownTextState createState() => _CountdownTextState();
+}
+
+class _CountdownTextState extends State<CountdownText>
+    with SingleTickerProviderStateMixin {
+  AnimationController _showNumberController;
+  Interval _opacity = Interval(0.0, 0.4);
+  Interval _scale = Interval(0.0, 0.5, curve: Curves.elasticOut);
+  int _displayedNumber;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _showNumberController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..addListener(() {
+        setState(() {});
+      });
+
+    _displayedNumber = widget.number;
+    if (_displayedNumber != null) {
+      _showNumberController.forward(from: 0);
+    }
+  }
+
+  @override
+  void didUpdateWidget(CountdownText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (widget.number != _displayedNumber) {
+      _displayedNumber = widget.number;
+      _showNumberController.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _showNumberController.dispose();
+
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.number == null) {
+      return SizedBox();
+    }
+
+    return Align(
+      alignment: Alignment(0.0, -0.3),
+      child: Transform.scale(
+        scale: _scale.transform(_showNumberController.value),
+        alignment: Alignment.center,
+        child: Opacity(
+          opacity: _opacity.transform(_showNumberController.value),
+          child: Text(
+            '$_displayedNumber',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 240,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
