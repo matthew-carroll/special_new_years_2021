@@ -66,9 +66,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: NewYearsCountdown(
+      home: NewYearsCountdownScreen(
         overrideStartDateTime: DateTime.parse('2020-12-31 23:59:49'),
-        // overrideStartDateTime: DateTime.parse('2021-01-01 00:00:00'),
         doTick: true,
       ),
       debugShowCheckedModeBanner: false,
@@ -76,8 +75,9 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class NewYearsCountdown extends StatefulWidget {
-  const NewYearsCountdown({
+/// Whole screen display of a new years countdown and celebration.
+class NewYearsCountdownScreen extends StatelessWidget {
+  const NewYearsCountdownScreen({
     Key key,
     this.overrideStartDateTime,
     this.doTick = true,
@@ -87,10 +87,43 @@ class NewYearsCountdown extends StatefulWidget {
   final bool doTick;
 
   @override
-  _NewYearsCountdownState createState() => _NewYearsCountdownState();
+  Widget build(BuildContext context) {
+    return TimeLapse(
+      overrideStartDateTime: overrideStartDateTime,
+      doTick: doTick,
+      dateTimeBuilder: (currentTime) {
+        return NewYearsCountdownPage(
+          now: currentTime,
+        );
+      },
+    );
+  }
 }
 
-class _NewYearsCountdownState extends State<NewYearsCountdown>
+/// Reports a date/time as time changes.
+///
+/// A custom initial time can be provided via `overrideStartDateTime`. The
+/// system's current date/time are used if no override is provided.
+///
+/// Time reporting can be limited to just a single tick, without changing
+/// over time, by setting `doTick` to `false`.
+class TimeLapse extends StatefulWidget {
+  const TimeLapse({
+    Key key,
+    this.overrideStartDateTime,
+    this.doTick = true,
+    this.dateTimeBuilder,
+  }) : super(key: key);
+
+  final DateTime overrideStartDateTime;
+  final bool doTick;
+  final Widget Function(DateTime) dateTimeBuilder;
+
+  @override
+  _TimeLapseState createState() => _TimeLapseState();
+}
+
+class _TimeLapseState extends State<TimeLapse>
     with SingleTickerProviderStateMixin {
   Ticker _ticker;
   DateTime _initialTime;
@@ -114,7 +147,7 @@ class _NewYearsCountdownState extends State<NewYearsCountdown>
   }
 
   @override
-  void didUpdateWidget(NewYearsCountdown oldWidget) {
+  void didUpdateWidget(TimeLapse oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     if (widget.overrideStartDateTime != oldWidget.overrideStartDateTime) {
@@ -160,14 +193,18 @@ class _NewYearsCountdownState extends State<NewYearsCountdown>
 
   @override
   Widget build(BuildContext context) {
-    return NewYearsCelebration(
-      now: _currentTime,
-    );
+    if (widget.dateTimeBuilder != null) {
+      return widget.dateTimeBuilder(_currentTime);
+    } else {
+      return SizedBox();
+    }
   }
 }
 
-class NewYearsCelebration extends StatefulWidget {
-  const NewYearsCelebration({
+/// Display of a new years countdown and celebration based on the given
+/// `DateTime` in `now`.
+class NewYearsCountdownPage extends StatefulWidget {
+  const NewYearsCountdownPage({
     Key key,
     @required this.now,
   }) : super(key: key);
@@ -175,10 +212,10 @@ class NewYearsCelebration extends StatefulWidget {
   final DateTime now;
 
   @override
-  _NewYearsCelebrationState createState() => _NewYearsCelebrationState();
+  _NewYearsCountdownPageState createState() => _NewYearsCountdownPageState();
 }
 
-class _NewYearsCelebrationState extends State<NewYearsCelebration>
+class _NewYearsCountdownPageState extends State<NewYearsCountdownPage>
     with TickerProviderStateMixin {
   final DateFormat _timeFormat = DateFormat('h:mm:ss a');
   final DateTime _newYearDateTime = DateTime.parse('2021-01-01 00:00:00');
@@ -203,7 +240,7 @@ class _NewYearsCelebrationState extends State<NewYearsCelebration>
   }
 
   @override
-  void didUpdateWidget(NewYearsCelebration oldWidget) {
+  void didUpdateWidget(NewYearsCountdownPage oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.now.year != widget.now.year) {
@@ -282,7 +319,6 @@ class _NewYearsCelebrationState extends State<NewYearsCelebration>
         (_newYearDateTime.difference(widget.now).inMilliseconds / 1000).ceil();
 
     return Scaffold(
-      backgroundColor: Colors.red,
       body: Stack(
         children: [
           Landscape(
@@ -292,15 +328,15 @@ class _NewYearsCelebrationState extends State<NewYearsCelebration>
             time: _timeFormat.format(widget.now),
             year: '${widget.now.year}',
           ),
-          Countdown(
+          CountdownText(
             number: secondsUntilNewYear > 0 && secondsUntilNewYear <= 10
                 ? secondsUntilNewYear
                 : null,
           ),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 500),
-            child: secondsUntilNewYear <= 0 && secondsUntilNewYear > -60
-                ? HappyNewYear()
+            child: secondsUntilNewYear <= 0 && secondsUntilNewYear > -35
+                ? HappyNewYearText()
                 : null,
           ),
         ],
@@ -357,16 +393,18 @@ class _NewYearsCelebrationState extends State<NewYearsCelebration>
   }
 }
 
-class Countdown extends StatefulWidget {
-  const Countdown({Key key, this.number}) : super(key: key);
+/// Displays a large countdown number near the center of the available
+/// space/screen.
+class CountdownText extends StatefulWidget {
+  const CountdownText({Key key, this.number}) : super(key: key);
 
   final int number;
 
   @override
-  _CountdownState createState() => _CountdownState();
+  _CountdownTextState createState() => _CountdownTextState();
 }
 
-class _CountdownState extends State<Countdown>
+class _CountdownTextState extends State<CountdownText>
     with SingleTickerProviderStateMixin {
   AnimationController _showNumberController;
   Interval _opacity = Interval(0.0, 0.4);
@@ -391,7 +429,7 @@ class _CountdownState extends State<Countdown>
   }
 
   @override
-  void didUpdateWidget(Countdown oldWidget) {
+  void didUpdateWidget(CountdownText oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     if (widget.number != _displayedNumber) {
@@ -434,12 +472,14 @@ class _CountdownState extends State<Countdown>
   }
 }
 
-class HappyNewYear extends StatefulWidget {
+/// Displays "Happy New Year" in large text near the center of the available
+/// space/screen.
+class HappyNewYearText extends StatefulWidget {
   @override
-  _HappyNewYearState createState() => _HappyNewYearState();
+  _HappyNewYearTextState createState() => _HappyNewYearTextState();
 }
 
-class _HappyNewYearState extends State<HappyNewYear>
+class _HappyNewYearTextState extends State<HappyNewYearText>
     with SingleTickerProviderStateMixin {
   AnimationController _showHappyNewYearController;
   Interval _opacity = Interval(0.0, 0.4);
@@ -490,6 +530,8 @@ class _HappyNewYearState extends State<HappyNewYear>
   }
 }
 
+/// Presents a background sky, mid-ground mountains, foreground time/date,
+/// and optionally some `fireworks` behind the mountains.
 class Landscape extends StatefulWidget {
   Landscape({
     Key key,
@@ -515,73 +557,44 @@ class _LandscapeState extends State<Landscape> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 500),
-          child: Container(
-            key: ValueKey(widget.mode),
-            decoration: BoxDecoration(
-              gradient: _buildGradient(),
-            ),
-          ),
-        ),
-        if (widget.mode == EnvironmentMode.night)
-          Positioned(
-            left: 0,
-            right: 0,
-            top: -50,
-            child: Image.asset(
-              'assets/stars.png',
-              fit: BoxFit.cover,
-            ),
-          ),
+        _buildSky(),
+        if (widget.mode == EnvironmentMode.night) _buildStars(),
         widget.fireworks,
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 500),
-            child: _buildMountains(),
-          ),
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: Opacity(
-            opacity: widget.flashPercent,
-            child: _buildMountainsFlash(),
-          ),
-        ),
-        Positioned(
-          bottom: 16,
-          left: 0,
-          right: 0,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                widget.time,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: _textColor,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              Text(
-                widget.year,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: _textColor,
-                  fontSize: 52,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-        ),
+        _buildMountains(),
+        _buildMountainsFlash(),
+        _buildText(),
       ],
+    );
+  }
+
+  Widget _buildText() {
+    return Positioned(
+      bottom: 16,
+      left: 0,
+      right: 0,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            widget.time,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: _textColor,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          Text(
+            widget.year,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: _textColor,
+              fontSize: 52,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -598,6 +611,19 @@ class _LandscapeState extends State<Landscape> {
     }
   }
 
+  Widget _buildSky() {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 500),
+      child: DecoratedBox(
+        key: ValueKey(widget.mode),
+        decoration: BoxDecoration(
+          gradient: _buildGradient(),
+        ),
+        child: SizedBox.expand(),
+      ),
+    );
+  }
+
   Gradient _buildGradient() {
     switch (widget.mode) {
       case EnvironmentMode.morning:
@@ -611,40 +637,75 @@ class _LandscapeState extends State<Landscape> {
     }
   }
 
+  Widget _buildStars() {
+    return Positioned(
+      left: 0,
+      right: 0,
+      top: -50,
+      child: Image.asset(
+        'assets/stars.png',
+        fit: BoxFit.cover,
+      ),
+    );
+  }
+
   Widget _buildMountainsFlash() {
-    return Image.asset(
-      'assets/mountains_night_flash.png',
-      fit: BoxFit.cover,
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: Opacity(
+        opacity: widget.flashPercent,
+        child: Image.asset(
+          'assets/mountains_night_flash.png',
+          fit: BoxFit.cover,
+        ),
+      ),
     );
   }
 
   Widget _buildMountains() {
+    Widget mountainsImage;
     switch (widget.mode) {
       case EnvironmentMode.morning:
-        return Image.asset(
+        mountainsImage = Image.asset(
           'assets/mountains_morning.png',
           key: ValueKey(widget.mode),
           fit: BoxFit.cover,
         );
+        break;
       case EnvironmentMode.afternoon:
-        return Image.asset(
+        mountainsImage = Image.asset(
           'assets/mountains_afternoon.png',
           key: ValueKey(widget.mode),
           fit: BoxFit.cover,
         );
+        break;
       case EnvironmentMode.evening:
-        return Image.asset(
+        mountainsImage = Image.asset(
           'assets/mountains_evening.png',
           key: ValueKey(widget.mode),
           fit: BoxFit.cover,
         );
+        break;
       case EnvironmentMode.night:
-        return Image.asset(
+        mountainsImage = Image.asset(
           'assets/mountains_night.png',
           key: ValueKey(widget.mode),
           fit: BoxFit.cover,
         );
+        break;
     }
+
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 500),
+        child: mountainsImage,
+      ),
+    );
   }
 }
 

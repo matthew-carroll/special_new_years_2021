@@ -100,7 +100,7 @@ Future<void> main() async {
 
 Widget _screenForDateTime(DateTime dateTime) {
   return MaterialApp(
-    home: NewYearsCountdown(
+    home: TimeLapse(
       overrideStartDateTime: dateTime,
       doTick: false,
     ),
