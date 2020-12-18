@@ -35,6 +35,7 @@ class Landscape extends StatelessWidget {
     @required this.mode,
   }) : super(key: key);
 
+  static const switchModeDuration = Duration(milliseconds: 500);
   final EnvironmentMode mode;
 
   @override
@@ -49,11 +50,15 @@ class Landscape extends StatelessWidget {
   }
 
   Widget _buildSky() {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: _buildGradient(),
+    return AnimatedSwitcher(
+      duration: switchModeDuration,
+      child: DecoratedBox(
+        key: ValueKey(mode),
+        decoration: BoxDecoration(
+          gradient: _buildGradient(),
+        ),
+        child: SizedBox.expand(),
       ),
-      child: SizedBox.expand(),
     );
   }
 
@@ -103,9 +108,13 @@ class Landscape extends StatelessWidget {
       left: 0,
       right: 0,
       bottom: 0,
-      child: Image.asset(
-        mountainsImagePath,
-        fit: BoxFit.cover,
+      child: AnimatedSwitcher(
+        duration: switchModeDuration,
+        child: Image.asset(
+          mountainsImagePath,
+          key: ValueKey(mode),
+          fit: BoxFit.cover,
+        ),
       ),
     );
   }
