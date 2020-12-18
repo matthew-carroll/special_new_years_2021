@@ -168,6 +168,20 @@ class _NewYearsCountdownPageState extends State<NewYearsCountdownPage>
   final List<Alignment> _confettiAlignments = [];
   Timer _generateMoreFireworksTimer;
 
+  AnimationController _mountainFlashController;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _mountainFlashController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..addListener(() {
+        setState(() {});
+      });
+  }
+
   @override
   void didUpdateWidget(NewYearsCountdownPage oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -184,6 +198,8 @@ class _NewYearsCountdownPageState extends State<NewYearsCountdownPage>
     for (final controller in _confettiControllers) {
       controller.dispose();
     }
+
+    _mountainFlashController.dispose();
 
     super.dispose();
   }
@@ -214,6 +230,8 @@ class _NewYearsCountdownPageState extends State<NewYearsCountdownPage>
         final alignVertical = (random.nextDouble() * -0.5) - 0.5;
         _confettiAlignments.add(Alignment(alignHorizontal, alignVertical));
       });
+
+      _mountainFlashController.reverse(from: 1.0);
 
       // Run again after random time.
       if (mounted) {
@@ -248,6 +266,7 @@ class _NewYearsCountdownPageState extends State<NewYearsCountdownPage>
         children: [
           Landscape(
             mode: _environmentMode,
+            flashPercent: _mountainFlashController.value,
             fireworks: _buildFireworks(),
             time: _timeFormat.format(widget.now),
             year: '${widget.now.year}',
@@ -458,6 +477,7 @@ class Landscape extends StatelessWidget {
     Key key,
     @required this.mode,
     this.fireworks = const SizedBox(),
+    this.flashPercent = 0.0,
     this.time = '',
     this.year = '',
   }) : super(key: key);
@@ -465,6 +485,7 @@ class Landscape extends StatelessWidget {
   static const switchModeDuration = Duration(milliseconds: 500);
   final EnvironmentMode mode;
   final Widget fireworks;
+  final double flashPercent;
   final String time;
   final String year;
 
@@ -476,6 +497,7 @@ class Landscape extends StatelessWidget {
         if (mode == EnvironmentMode.night) _buildStars(),
         fireworks,
         _buildMountains(),
+        _buildMountainsFlash(),
         _buildText(),
       ],
     );
@@ -545,6 +567,21 @@ class Landscape extends StatelessWidget {
         child: Image.asset(
           mountainsImagePath,
           key: ValueKey(mode),
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMountainsFlash() {
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: Opacity(
+        opacity: flashPercent,
+        child: Image.asset(
+          'assets/mountains_night_flash.png',
           fit: BoxFit.cover,
         ),
       ),
