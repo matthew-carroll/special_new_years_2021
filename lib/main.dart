@@ -179,6 +179,12 @@ class _NewYearsCountdownPageState extends State<NewYearsCountdownPage>
                 ? secondsUntilNewYear
                 : null,
           ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 500),
+            child: secondsUntilNewYear <= 0 && secondsUntilNewYear > -35
+                ? HappyNewYearText()
+                : null,
+          ),
         ],
       ),
     );
@@ -269,6 +275,62 @@ class _CountdownTextState extends State<CountdownText>
               color: Colors.white,
               fontSize: 240,
               fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class HappyNewYearText extends StatefulWidget {
+  @override
+  _HappyNewYearTextState createState() => _HappyNewYearTextState();
+}
+
+class _HappyNewYearTextState extends State<HappyNewYearText>
+    with SingleTickerProviderStateMixin {
+  AnimationController _showHappyNewYearController;
+  Interval _opacity = Interval(0.0, 0.4);
+  Interval _scale = Interval(0.0, 0.5, curve: Curves.elasticOut);
+
+  @override
+  void initState() {
+    super.initState();
+
+    _showHappyNewYearController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )
+      ..addListener(() {
+        setState(() {});
+      })
+      ..forward(from: 0.0);
+  }
+
+  @override
+  void dispose() {
+    _showHappyNewYearController.dispose();
+
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment(0.0, -0.35),
+      child: Transform.scale(
+        scale: _scale.transform(_showHappyNewYearController.value),
+        child: Opacity(
+          opacity: _opacity.transform(_showHappyNewYearController.value),
+          child: Text(
+            'HAPPY\nNEW\nYEAR!',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 80,
+              fontWeight: FontWeight.bold,
+              height: 0.9,
             ),
           ),
         ),
