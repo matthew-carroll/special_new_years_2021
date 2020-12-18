@@ -1,3 +1,6 @@
+import 'dart:math';
+
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:intl/intl.dart';
@@ -15,7 +18,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: NewYearsCountdownScreen(
-        overrideStartDateTime: DateTime.parse('2020-12-31 23:59:49'),
+        overrideStartDateTime: DateTime.parse('2020-12-31 20:59:49'),
         doTick: true,
       ),
       debugShowCheckedModeBanner: false,
@@ -159,6 +162,16 @@ class _NewYearsCountdownPageState extends State<NewYearsCountdownPage>
 
   final DateFormat _timeFormat = DateFormat('h:mm:ss a');
 
+  ConfettiController _fireworksController;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _fireworksController =
+        ConfettiController(duration: const Duration(seconds: 1))..play();
+  }
+
   @override
   Widget build(BuildContext context) {
     // We ceil() the fraction so that when time hits something like 23:59:59.007
@@ -171,6 +184,25 @@ class _NewYearsCountdownPageState extends State<NewYearsCountdownPage>
         children: [
           Landscape(
             mode: _environmentMode,
+            fireworks: Align(
+              alignment: Alignment(0.0, -0.5),
+              child: ConfettiWidget(
+                confettiController: _fireworksController,
+                displayTarget: true,
+                blastDirectionality: BlastDirectionality.explosive,
+                blastDirection: 2 * pi,
+                colors: [Colors.red],
+                minimumSize: Size(1, 1),
+                maximumSize: Size(5, 5),
+                minBlastForce: 0.001,
+                maxBlastForce: 0.0011,
+                gravity: 0.1,
+                particleDrag: 0.1,
+                numberOfParticles: 35,
+                emissionFrequency: 0.00000001,
+                shouldLoop: false,
+              ),
+            ),
             time: _timeFormat.format(widget.now),
             year: '${widget.now.year}',
           ),
@@ -343,12 +375,14 @@ class Landscape extends StatelessWidget {
   Landscape({
     Key key,
     @required this.mode,
+    this.fireworks = const SizedBox(),
     this.time = '',
     this.year = '',
   }) : super(key: key);
 
   static const switchModeDuration = Duration(milliseconds: 500);
   final EnvironmentMode mode;
+  final Widget fireworks;
   final String time;
   final String year;
 
@@ -358,6 +392,7 @@ class Landscape extends StatelessWidget {
       children: [
         _buildSky(),
         if (mode == EnvironmentMode.night) _buildStars(),
+        fireworks,
         _buildMountains(),
         _buildText(),
       ],
