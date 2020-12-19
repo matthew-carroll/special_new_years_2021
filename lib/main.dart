@@ -278,7 +278,7 @@ class _NewYearsCountdownPageState extends State<NewYearsCountdownPage>
           alignment: _fireworksAlignments[i],
           child: ConfettiWidget(
             confettiController: _fireworksControllers[i],
-            displayTarget: true,
+            displayTarget: false,
             blastDirectionality: BlastDirectionality.explosive,
             blastDirection: 2 * pi,
             colors: [color],
