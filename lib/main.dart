@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: NewYearsCountdownScreen(
-        overrideStartDateTime: DateTime.parse('2020-12-31 23:59:49'),
+        overrideStartDateTime: DateTime.parse('2020-12-31 08:59:49'),
         doTick: true,
       ),
       debugShowCheckedModeBanner: false,
@@ -32,7 +32,6 @@ class NewYearsCountdownScreen extends StatelessWidget {
 
   final DateTime overrideStartDateTime;
   final bool doTick;
-  final DateFormat _timeFormat = DateFormat('h:mm:ss a');
 
   @override
   Widget build(BuildContext context) {
@@ -41,10 +40,8 @@ class NewYearsCountdownScreen extends StatelessWidget {
         overrideStartDateTime: overrideStartDateTime,
         doTick: doTick,
         dateTimeBuilder: (DateTime currentTime) {
-          return Landscape(
-            mode: EnvironmentMode.evening,
-            time: _timeFormat.format(currentTime),
-            year: '${currentTime.year}',
+          return NewYearsCountdownPage(
+            currentTime: currentTime,
           );
         },
       ),
@@ -138,6 +135,44 @@ class _TimeLapseState extends State<TimeLapse>
   @override
   Widget build(BuildContext context) {
     return widget.dateTimeBuilder(_currentTime);
+  }
+}
+
+class NewYearsCountdownPage extends StatefulWidget {
+  const NewYearsCountdownPage({
+    Key key,
+    @required this.currentTime,
+  }) : super(key: key);
+
+  final DateTime currentTime;
+
+  @override
+  _NewYearsCountdownPageState createState() => _NewYearsCountdownPageState();
+}
+
+class _NewYearsCountdownPageState extends State<NewYearsCountdownPage> {
+  final DateFormat _timeFormat = DateFormat('h:mm:ss a');
+
+  @override
+  Widget build(BuildContext context) {
+    return Landscape(
+      mode: _buildEnvironmentMode(),
+      time: _timeFormat.format(widget.currentTime),
+      year: '${widget.currentTime.year}',
+    );
+  }
+
+  EnvironmentMode _buildEnvironmentMode() {
+    final hour = widget.currentTime.hour;
+    if (hour >= 6 && hour < 11) {
+      return EnvironmentMode.morning;
+    } else if (hour >= 11 && hour < 15) {
+      return EnvironmentMode.afternoon;
+    } else if (hour >= 15 && hour <= 18) {
+      return EnvironmentMode.evening;
+    } else {
+      return EnvironmentMode.night;
+    }
   }
 }
 
