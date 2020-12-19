@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:math';
+
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:intl/intl.dart';
@@ -150,10 +154,79 @@ class NewYearsCountdownPage extends StatefulWidget {
   _NewYearsCountdownPageState createState() => _NewYearsCountdownPageState();
 }
 
-class _NewYearsCountdownPageState extends State<NewYearsCountdownPage> {
+class _NewYearsCountdownPageState extends State<NewYearsCountdownPage>
+    with SingleTickerProviderStateMixin {
   final DateTime _newYearDateTime = DateTime.parse('2021-01-01 00:00:00');
 
   final DateFormat _timeFormat = DateFormat('h:mm:ss a');
+  final List<ConfettiController> _fireworksControllers = [];
+  final List<DateTime> _fireworksStartTimes = [];
+  final List<Alignment> _fireworksAlignments = [];
+  Timer _generateMoreFireworksTimer;
+
+  AnimationController _mountainFlashController;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _mountainFlashController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..addListener(() {
+        setState(() {});
+      });
+  }
+
+  @override
+  void didUpdateWidget(NewYearsCountdownPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.currentTime.year != widget.currentTime.year) {
+      _doFireworks();
+    }
+  }
+
+  @override
+  void dispose() {
+    _generateMoreFireworksTimer?.cancel();
+
+    _mountainFlashController.dispose();
+
+    for (final controller in _fireworksControllers) {
+      controller.dispose();
+    }
+
+    super.dispose();
+  }
+
+  Future<void> _doFireworks() async {
+    // Add a new fireworks controller.
+    if (_fireworksControllers.length < 25) {
+      final newController =
+          ConfettiController(duration: const Duration(milliseconds: 1000))
+            ..play();
+      _fireworksControllers.add(newController);
+      _fireworksStartTimes.add(DateTime.now());
+
+      final random = Random();
+      final alignHorizontal = (random.nextDouble() * 2.0) - 1.0;
+      final alignVertical = (random.nextDouble() * -0.5) - 0.5;
+      _fireworksAlignments.add(Alignment(alignHorizontal, alignVertical));
+
+      _mountainFlashController.reverse(from: 1.0);
+
+      if (mounted) {
+        final randomTime = Random().nextInt(2000);
+        _generateMoreFireworksTimer =
+            Timer(Duration(milliseconds: randomTime), () {
+          if (mounted) {
+            _doFireworks();
+          }
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -165,6 +238,8 @@ class _NewYearsCountdownPageState extends State<NewYearsCountdownPage> {
       children: [
         Landscape(
           mode: _buildEnvironmentMode(),
+          fireworks: _buildFireworks(),
+          flashPercent: _mountainFlashController.value,
           time: _timeFormat.format(widget.currentTime),
           year: '${widget.currentTime.year}',
         ),
@@ -189,6 +264,41 @@ class _NewYearsCountdownPageState extends State<NewYearsCountdownPage> {
     } else {
       return EnvironmentMode.night;
     }
+  }
+
+  Widget _buildFireworks() {
+    final availableColors = [Colors.blue, Colors.red, Colors.white];
+    final colorIndex = Random().nextInt(3);
+    final color = availableColors[colorIndex];
+
+    final fireworks = <Widget>[];
+    for (var i = 0; i < _fireworksControllers.length; ++i) {
+      fireworks.add(
+        Align(
+          alignment: _fireworksAlignments[i],
+          child: ConfettiWidget(
+            confettiController: _fireworksControllers[i],
+            displayTarget: true,
+            blastDirectionality: BlastDirectionality.explosive,
+            blastDirection: 2 * pi,
+            colors: [color],
+            minimumSize: Size(1, 1),
+            maximumSize: Size(5, 5),
+            minBlastForce: 0.001,
+            maxBlastForce: 0.0011,
+            gravity: 0.1,
+            particleDrag: 0.1,
+            numberOfParticles: 35,
+            emissionFrequency: 0.00000001,
+            shouldLoop: false,
+          ),
+        ),
+      );
+    }
+
+    return Stack(
+      children: fireworks,
+    );
   }
 }
 
@@ -340,9 +450,6 @@ class _HappyNewYearTextState extends State<HappyNewYearText>
 
   @override
   Widget build(BuildContext context) {
-    print(
-        'Seconds to new widget: ${widget.secondsToNewYear}, year internal: $_previousSecondsToNewYear');
-
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 500),
       child: _shouldDisplayHappyNewYears()
@@ -375,12 +482,16 @@ class Landscape extends StatelessWidget {
   const Landscape({
     Key key,
     this.mode,
+    this.fireworks = const SizedBox(),
+    this.flashPercent = 0.0,
     this.time = '',
     this.year = '',
   }) : super(key: key);
 
   static const switchModeDuration = Duration(milliseconds: 500);
   final EnvironmentMode mode;
+  final Widget fireworks;
+  final double flashPercent;
   final String time;
   final String year;
 
@@ -390,7 +501,9 @@ class Landscape extends StatelessWidget {
       children: [
         _buildSky(),
         _buildStars(),
+        fireworks,
         _buildMountains(),
+        _buildMountainsFlash(),
         _buildText(),
       ],
     );
@@ -462,6 +575,21 @@ class Landscape extends StatelessWidget {
         child: Image.asset(
           mountainsImagePath,
           key: ValueKey(mode),
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMountainsFlash() {
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: Opacity(
+        opacity: flashPercent,
+        child: Image.asset(
+          'assets/mountains_night_flash.png',
           fit: BoxFit.cover,
         ),
       ),
